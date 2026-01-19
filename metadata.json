@@ -1,0 +1,7 @@
+{
+  "name": "F-bites - Cứu Trợ Thực Phẩm",
+  "description": "Ứng dụng kết nối thực phẩm dư thừa chất lượng tại Việt Nam.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
