@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderType {
+  DELIVERY
+  PICKUP
+}
+
+model User {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  password    String
+  phone       String?
+  avatar      String?
+  role        Role     @default(BUYER)
+  isApproved  Boolean  @default(true)
+  shopName    String?
+  shopAddress String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products    Product[] @relation("SellerProducts")
+  buyerOrders Order[]   @relation("BuyerOrders")
+  sellerOrders Order[]  @relation("SellerOrders")
+
+  @@index([role])
+  @@index([isApproved])
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  sellerId        String
+  seller          User     @relation("SellerProducts", fields: [sellerId], references: [id])
+  name            String
+  description     String?
+  originalPrice   Int
+  discountedPrice Int
+  image           String?
+  quantity        Int      @default(0)
+  expiryTime      DateTime
+  category        String?
+  lat             Float?
+  lng             Float?
+  address         String?
+  isDeleted       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orderItems      OrderItem[]
+
+  @@index([sellerId])
+  @@index([isDeleted, quantity])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  buyerId         String
+  sellerId        String
+  buyer           User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller          User        @relation("SellerOrders", fields: [sellerId], references: [id])
+  total           Int
+  shippingFee     Int         @default(0)
+  status          OrderStatus @default(PENDING)
+  type            OrderType
+  deliveryAddress String?
+  note            String?
+  pickupCode      String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items           OrderItem[]
+
+  @@index([buyerId, createdAt])
+  @@index([sellerId, createdAt])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Int
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
