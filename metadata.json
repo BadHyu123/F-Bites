@@ -1,0 +1,7 @@
+{
+  "name": "Mẫu F-bites ADMIN",
+  "description": "Ứng dụng kết nối thực phẩm dư thừa chất lượng tại Việt Nam.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

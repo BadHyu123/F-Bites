@@ -1,0 +1,31 @@
+{
+  "name": "mẫu-f-bites-admin",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "lucide-react": "0.344.0",
+    "react-router-dom": "6.22.3",
+    "leaflet": "1.9.4",
+    "react-leaflet": "4.2.1",
+    "express": "^5.2.1",
+    "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.3",
+    "bcryptjs": "^3.0.3",
+    "@prisma/client": "^7.3.0",
+    "cors": "^2.8.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
