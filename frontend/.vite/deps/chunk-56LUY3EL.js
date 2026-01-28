@@ -3,9 +3,9 @@ var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 
-// node_modules/react/cjs/react.development.js
+// Front_end/node_modules/react/cjs/react.development.js
 var require_react_development = __commonJS({
-  "node_modules/react/cjs/react.development.js"(exports, module) {
+  "Front_end/node_modules/react/cjs/react.development.js"(exports, module) {
     "use strict";
     if (true) {
       (function() {
@@ -13,7 +13,7 @@ var require_react_development = __commonJS({
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
           __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
         }
-        var ReactVersion = "18.3.1";
+        var ReactVersion = "18.2.0";
         var REACT_ELEMENT_TYPE = Symbol.for("react.element");
         var REACT_PORTAL_TYPE = Symbol.for("react.portal");
         var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
@@ -1841,7 +1841,6 @@ var require_react_development = __commonJS({
         exports.StrictMode = REACT_STRICT_MODE_TYPE;
         exports.Suspense = REACT_SUSPENSE_TYPE;
         exports.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = ReactSharedInternals;
-        exports.act = act;
         exports.cloneElement = cloneElement$1;
         exports.createContext = createContext;
         exports.createElement = createElement$1;
@@ -1877,9 +1876,9 @@ var require_react_development = __commonJS({
   }
 });
 
-// node_modules/react/index.js
+// Front_end/node_modules/react/index.js
 var require_react = __commonJS({
-  "node_modules/react/index.js"(exports, module) {
+  "Front_end/node_modules/react/index.js"(exports, module) {
     if (false) {
       module.exports = null;
     } else {
@@ -1905,4 +1904,4 @@ react/cjs/react.development.js:
    * LICENSE file in the root directory of this source tree.
    *)
 */
-//# sourceMappingURL=chunk-GFWMZNU4.js.map
+//# sourceMappingURL=chunk-56LUY3EL.js.map
