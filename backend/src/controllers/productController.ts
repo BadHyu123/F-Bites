@@ -73,3 +73,26 @@ export const deleteProduct = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+export const updateProduct = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name, originalPrice, discountedPrice, quantity, isDeleted } = req.body; // Lấy các trường cần sửa
+
+        // 1. Check if the dish exists and belongs to the correct owner
+        const product = await prisma.product.findUnique({ where: { id } });
+        if (!product) return res.status(404).json({ message: 'Không tìm thấy món ăn' });
+        if (product.sellerId !== req.user!.id) return res.status(403).json({ message: 'Không có quyền sửa' });
+
+        // 2. Update
+        const updated = await prisma.product.update({
+            where: { id },
+            data: {
+                name, originalPrice, discountedPrice, quantity, isDeleted
+            }
+        });
+        res.json(updated);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server' });
+    }
+};
