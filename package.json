@@ -12,7 +12,8 @@
     "client:preview": "vite preview",
     "server:dev": "npm --prefix backend run dev",
     "server:build": "npm --prefix backend run build",
-    "server:start": "npm --prefix backend run start"
+    "server:start": "npm --prefix backend run start",
+    "client:install": "npm --prefix client install"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
