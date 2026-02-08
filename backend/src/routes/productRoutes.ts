@@ -1,14 +1,11 @@
 import express from 'express';
+import { getProducts, getProduct, createProduct } from '../controllers/productController';
+import { protect, sellerOnly } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Minimal product routes placeholder
-router.get('/', async (req, res) => {
-  res.json({ message: 'Products endpoint placeholder' });
-});
-
-router.get('/:id', async (req, res) => {
-  res.status(501).json({ message: 'Get product not implemented' });
-});
+router.get('/', getProducts);
+router.get('/:id', getProduct);
+router.post('/', protect, sellerOnly, createProduct);
 
 export default router;

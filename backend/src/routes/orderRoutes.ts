@@ -1,14 +1,12 @@
 import express from 'express';
+import { createOrder, getOrders, updateOrderStatus } from '../controllers/orderController';
+import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Minimal order routes placeholder
-router.get('/', async (req, res) => {
-  res.json({ message: 'Orders endpoint placeholder' });
-});
-
-router.post('/', async (req, res) => {
-  res.status(501).json({ message: 'Create order not implemented' });
-});
+router.use(protect);
+router.get('/', getOrders);
+router.post('/', createOrder);
+router.put('/:orderId/status', updateOrderStatus);
 
 export default router;
