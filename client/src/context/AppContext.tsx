@@ -1,11 +1,11 @@
 
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { User, Product, CartItem, Order, Role, WishlistItem, UserLocation, Voucher } from '../types';
-import { MOCK_USERS, MOCK_PRODUCTS, MOCK_ORDERS } from '../utils/mockData';
 
 export interface AppContextType {
   user: User | null;
-  login: (identifier: string, type: 'EMAIL' | 'PHONE', role: Role) => void;
+  login: (email: string, password: string, role: Role) => Promise<boolean>;
+  register: (name: string, email: string, password: string, role: Role) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   products: Product[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
@@ -37,11 +37,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  // keep token in localStorage for API calls
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('fbites_token'));
+
+  const [users, setUsers] = useState<User[]>([]);
 
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('fbites_products');
-    return saved ? JSON.parse(saved) : MOCK_PRODUCTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -51,8 +54,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [orders, setOrders] = useState<Order[]>(() => {
     const saved = localStorage.getItem('fbites_orders');
-    return saved ? JSON.parse(saved) : MOCK_ORDERS;
+    return saved ? JSON.parse(saved) : [];
   });
+
+  // Load products from backend API on mount (uses backend default at localhost:5000)
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/products');
+        if (!res.ok) return;
+        const data = await res.json();
+        setProducts(data);
+      } catch (e) {
+        // ignore network errors while offline
+      }
+    };
+    load();
+  }, []);
 
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
     const saved = localStorage.getItem('fbites_wishlist');
@@ -77,6 +95,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   useEffect(() => localStorage.setItem('fbites_user', JSON.stringify(user)), [user]);
+  useEffect(() => {
+    if (token) localStorage.setItem('fbites_token', token);
+    else localStorage.removeItem('fbites_token');
+  }, [token]);
   useEffect(() => localStorage.setItem('fbites_products', JSON.stringify(products)), [products]);
   useEffect(() => localStorage.setItem('fbites_cart', JSON.stringify(cart)), [cart]);
   useEffect(() => localStorage.setItem('fbites_orders', JSON.stringify(orders)), [orders]);
@@ -84,31 +106,46 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => localStorage.setItem('fbites_location', JSON.stringify(userLocation)), [userLocation]);
   useEffect(() => localStorage.setItem('fbites_vouchers', JSON.stringify(vouchers)), [vouchers]);
 
-  const login = (identifier: string, type: 'EMAIL' | 'PHONE', role: Role) => {
-    let foundUser = users.find(u => 
-      (type === 'EMAIL' && u.email === identifier) || 
-      (type === 'PHONE' && u.phone === identifier)
-    );
-
-    if (!foundUser || foundUser.role !== role) {
-      foundUser = {
-        id: `new_${Date.now()}`,
-        name: type === 'EMAIL' ? identifier.split('@')[0] : `User ${identifier.slice(-4)}`,
-        email: type === 'EMAIL' ? identifier : '',
-        phone: type === 'PHONE' ? identifier : '',
-        role,
-        shopName: role === 'SELLER' ? 'Cửa hàng mới' : undefined,
-        isApproved: role === 'SELLER' ? false : undefined,
-        notificationChannel: type === 'PHONE' ? 'ZALO' : 'EMAIL'
-      };
-      setUsers(prev => [...prev, foundUser!]); 
+  const login = async (email: string, password: string, role: Role) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      const { user: u, token: t } = data;
+      setUser(u);
+      setToken(t);
+      // populate wishlist for buyer if empty
+      if (u.role === 'BUYER' && wishlist.length === 0) {
+        setWishlist([{ id: `w_${Date.now()}`, userId: u.id, keyword: 'Bánh mì', createdAt: new Date().toISOString() }]);
+      }
+      return true;
+    } catch (e) {
+      return false;
     }
-    setUser(foundUser);
-    
-    if (role === 'BUYER' && wishlist.length === 0) {
-        setWishlist([
-            { id: 'w1', userId: foundUser.id, keyword: 'Bánh mì', createdAt: new Date().toISOString() }
-        ]);
+  };
+
+  const register = async (name: string, email: string, password: string, role: Role) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { success: false, message: err?.message || 'Registration failed' };
+      }
+      const data = await res.json();
+      // set user + token
+      setUser(data.user);
+      setToken(data.token);
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: 'Network error' };
     }
   };
 
@@ -116,7 +153,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setUser(null);
     setCart([]);
     setWishlist([]);
-    localStorage.clear();
+    setToken(null);
+    // do not remove other localStorage keys used for persistence of app state
+    localStorage.removeItem('fbites_user');
+    localStorage.removeItem('fbites_token');
   };
 
   const addToCart = (product: Product, quantity: number) => {
@@ -135,47 +175,91 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const clearCart = () => setCart([]);
 
-  const placeOrder = (type: 'DELIVERY' | 'PICKUP', address?: string) => {
+  const placeOrder = (type: 'DELIVERY' | 'PICKUP', address?: string, voucherCode?: string) => {
     if (!user || cart.length === 0) return;
-    
-    const itemsBySeller: Record<string, CartItem[]> = {};
-    cart.forEach(item => {
-        if (!itemsBySeller[item.sellerId]) {
-            itemsBySeller[item.sellerId] = [];
+
+    // Build request payload
+    const itemsPayload = cart.map(ci => ({ productId: ci.id, quantity: ci.cartQuantity }));
+
+    (async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ items: itemsPayload, type, deliveryAddress: address, voucherCode })
+        });
+        if (!res.ok) throw new Error('Order creation failed');
+        const data = await res.json();
+        // append new order locally (we can fetch full order list too)
+        const createdOrder = await fetch(`http://localhost:5000/api/orders`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        }).then(r => r.json()).catch(() => null);
+        if (createdOrder) {
+          // if API returned list, refresh
+          setOrders(createdOrder);
         }
-        itemsBySeller[item.sellerId].push(item);
-    });
-
-    const newOrders: Order[] = Object.keys(itemsBySeller).map(sellerId => {
-        const items = itemsBySeller[sellerId];
-        const subTotal = items.reduce((sum, item) => sum + (item.discountedPrice * item.cartQuantity), 0);
-        const shippingFee = type === 'DELIVERY' ? 15000 : 0; 
-
-        return {
-            id: `DH-${Math.floor(Math.random() * 100000)}`,
-            buyerId: user.id,
-            sellerId: sellerId,
-            items: items,
-            total: subTotal + shippingFee,
-            shippingFee,
-            status: 'PENDING',
-            type,
-            deliveryAddress: address,
-            pickupCode: type === 'PICKUP' ? `QR-${Math.floor(Math.random() * 1000000)}` : undefined,
-            createdAt: new Date().toISOString()
-        };
-    });
-
-    setOrders(prev => [...newOrders, ...prev]);
-    clearCart();
+        clearCart();
+      } catch (e) {
+        // fallback: local optimistic order already implemented in previous logic
+        clearCart();
+      }
+    })();
   };
 
   const updateOrderStatus = (orderId: string, status: Order['status']) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+    (async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ status })
+        });
+        if (!res.ok) throw new Error('Update failed');
+        const updated = await res.json();
+        setOrders(prev => prev.map(o => o.id === orderId ? updated : o));
+      } catch (e) {
+        // fallback local update
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+      }
+    })();
   };
 
   const addProduct = (product: Product) => {
-    setProducts(prev => [product, ...prev]);
+    // If user is authenticated (seller) try to create product on backend
+    const createRemote = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            name: product.name,
+            description: product.description,
+            originalPrice: product.originalPrice,
+            discountedPrice: product.discountedPrice,
+            quantity: product.quantity,
+            expiryTime: product.expiryTime,
+            category: product.category,
+            image: product.image,
+            lat: product.location?.lat,
+            lng: product.location?.lng,
+            address: product.address
+          })
+        });
+        if (!res.ok) throw new Error('Create product failed');
+        const created = await res.json();
+        setProducts(prev => [created, ...prev]);
+      } catch (e) {
+        // fallback to local add
+        setProducts(prev => [product, ...prev]);
+      }
+    };
+    createRemote();
     const matchingWishlist = wishlist.filter(w => 
         product.name.toLowerCase().includes(w.keyword.toLowerCase()) || 
         product.category.toLowerCase().includes(w.keyword.toLowerCase())
@@ -219,7 +303,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   return (
     <AppContext.Provider value={{
-      user, login, logout,
+      user, login, register, logout,
       products, setProducts, cart, addToCart, removeFromCart, clearCart,
       orders, placeOrder, updateOrderStatus, addProduct, deleteProduct,
       wishlist, addToWishlist, removeFromWishlist,

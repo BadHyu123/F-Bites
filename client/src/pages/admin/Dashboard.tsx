@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../hooks/useApp';
 import { Header, Button } from '../../components/Common';
 import { User as UserIcon, Check, X, ShieldCheck, DollarSign, ShoppingBag } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 
 export const AdminDashboard: React.FC = () => {
   const { orders, approveShop, rejectShop } = useApp();
@@ -25,6 +26,20 @@ export const AdminDashboard: React.FC = () => {
       { name: 'T7', pct: 85 },
       { name: 'CN', pct: 95 },
   ];
+
+    const [daily, setDaily] = useState<{ date: string; revenue: number }[]>([]);
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await fetch('http://localhost:5000/api/admin/revenue/daily', { headers: { 'Content-Type': 'application/json' } });
+                if (!res.ok) return;
+                const data = await res.json();
+                setDaily(data.map((d: any) => ({ date: d.date.slice(5), revenue: Math.round(d.revenue / 1000) }))); // show in thousands
+            } catch (e) {}
+        };
+        load();
+    }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -111,23 +126,19 @@ export const AdminDashboard: React.FC = () => {
                       </div>
                   </div>
 
-                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 className="font-bold text-sm mb-6 text-gray-700">Biểu đồ tăng trưởng (7 ngày)</h3>
-                        
-                        <div className="flex items-end justify-between h-48 gap-3">
-                            {chartData.map((d, i) => (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                                    <div className="w-full bg-gray-100 rounded-t-lg relative h-full flex items-end overflow-hidden">
-                                        <div 
-                                            className="w-full bg-[#19454B] hover:bg-[#FF7043] transition-colors duration-300 rounded-t-lg" 
-                                            style={{ height: `${d.pct}%` }}
-                                        ></div>
-                                    </div>
-                                    <span className="text-[10px] font-bold text-gray-400">{d.name}</span>
-                                </div>
-                            ))}
-                        </div>
-                   </div>
+                                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                                                <h3 className="font-bold text-sm mb-6 text-gray-700">Biểu đồ doanh thu (ngày)</h3>
+                                                <div style={{ width: '100%', height: 220 }}>
+                                                    <ResponsiveContainer>
+                                                        <BarChart data={daily}>
+                                                            <XAxis dataKey="date" />
+                                                            <YAxis />
+                                                            <Tooltip formatter={(v: any) => `${v}k`} />
+                                                            <Bar dataKey="revenue" fill="#19454B" />
+                                                        </BarChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                     </div>
               </div>
           )}
       </div>

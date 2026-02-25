@@ -7,6 +7,8 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // Clear existing data
+  await prisma.review.deleteMany();
+  await prisma.voucher.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.product.deleteMany();
@@ -16,6 +18,7 @@ async function main() {
   const adminPassword = await bcrypt.hash('admin123', 10);
   const buyerPassword = await bcrypt.hash('buyer123', 10);
   const sellerPassword = await bcrypt.hash('seller123', 10);
+  const trialPassword = await bcrypt.hash('123456', 10);
 
   const admin = await prisma.user.create({
     data: {
@@ -61,6 +64,42 @@ async function main() {
       role: 'SELLER',
       shopName: 'Quán Cơm Chiên An Phú',
       shopAddress: '456 Tran Hung Dao, Q1, TP.HCM',
+      isApproved: true,
+    },
+  });
+
+  // Trial/testing accounts (quick-login buttons removed from UI)
+  const trialAdmin = await prisma.user.create({
+    data: {
+      name: 'Admin (trial)',
+      email: 'admin@test.com',
+      password: trialPassword,
+      phone: '0900000011',
+      role: 'ADMIN',
+      isApproved: true,
+    },
+  });
+
+  const trialBuyer = await prisma.user.create({
+    data: {
+      name: 'Buyer (trial)',
+      email: 'buyer@test.com',
+      password: trialPassword,
+      phone: '0900000012',
+      role: 'BUYER',
+      isApproved: true,
+    },
+  });
+
+  const trialSeller = await prisma.user.create({
+    data: {
+      name: 'Seller (trial)',
+      email: 'seller@test.com',
+      password: trialPassword,
+      phone: '0900000013',
+      role: 'SELLER',
+      shopName: 'Seller Demo',
+      shopAddress: 'Demo address',
       isApproved: true,
     },
   });
@@ -156,6 +195,27 @@ async function main() {
     },
   });
 
+  // Create sample vouchers
+  const voucher1 = await prisma.voucher.create({
+    data: {
+      code: 'WELCOME10',
+      type: 'PERCENT',
+      amount: 10,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      usageLimit: 100,
+    },
+  });
+
+  const voucher2 = await prisma.voucher.create({
+    data: {
+      code: 'FLAT5000',
+      type: 'FIXED',
+      amount: 5000,
+      expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      usageLimit: 50,
+    },
+  });
+
   console.log('✅ Seeding completed!');
   console.log(`
 📊 Created:
@@ -165,6 +225,10 @@ async function main() {
    - Products: ${product1.name}, ${product2.name}, ${product3.name}, ${product4.name}
    - Sample Order: ${order.id}
   `);
+  console.log('\n🔑 Trial accounts (for local dev):');
+  console.log('   - Admin: admin@test.com / 123456');
+  console.log('   - Buyer: buyer@test.com / 123456');
+  console.log('   - Seller: seller@test.com / 123456');
 }
 
 main()

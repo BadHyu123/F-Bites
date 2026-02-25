@@ -3,11 +3,16 @@ import React from 'react';
 import { useApp } from '../../hooks/useApp';
 import { Header, StatusBadge } from '../../components/Common';
 import { QrCode, MapPin, Store } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const BuyerOrders: React.FC = () => {
   const { orders, user } = useApp();
   
   const myOrders = orders.filter(o => o.buyerId === user?.id).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const [rating, setRating] = useState(5);
+    const [comment, setComment] = useState('');
+    const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -66,6 +71,37 @@ export const BuyerOrders: React.FC = () => {
                             <span className="text-xs font-bold text-[#19454B] uppercase block">Mã lấy hàng</span>
                             <span className="font-mono font-bold text-lg tracking-wider block">{order.pickupCode}</span>
                             <p className="text-[10px] text-gray-500 mt-0.5">Đưa mã này cho nhân viên quán</p>
+                        </div>
+                    </div>
+                )}
+                {order.status === 'COMPLETED' && (
+                    <div className="mt-4 bg-white p-3 rounded-lg border border-gray-100">
+                        <h4 className="font-bold text-sm text-gray-700 mb-2">Đánh giá đơn hàng</h4>
+                        <div className="flex items-center gap-2 mb-2">
+                            <select value={rating} onChange={e => setRating(Number(e.target.value))} className="px-3 py-2 border rounded">
+                                {[5,4,3,2,1].map(r => <option key={r} value={r}>{r} sao</option>)}
+                            </select>
+                            <input value={comment} onChange={e => setComment(e.target.value)} placeholder="Viết nhận xét (tùy chọn)" className="flex-1 px-3 py-2 border rounded" />
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={async () => {
+                                // submit review for first item
+                                const productId = order.items[0]?.productId || order.items[0]?.id;
+                                try {
+                                    const token = localStorage.getItem('fbites_token');
+                                    const res = await fetch('http://localhost:5000/api/reviews', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                                        body: JSON.stringify({ productId, orderId: order.id, rating, comment })
+                                    });
+                                    if (!res.ok) throw new Error('Failed');
+                                    alert('Cảm ơn đánh giá của bạn!');
+                                    setComment('');
+                                } catch (e) {
+                                    alert('Gửi đánh giá thất bại');
+                                }
+                            }} className="px-4 py-2 bg-[#19454B] text-white rounded">Gửi đánh giá</button>
+                            <button onClick={() => navigate(`/buyer/order/${order.id}`)} className="px-4 py-2 border rounded">Xem chi tiết</button>
                         </div>
                     </div>
                 )}

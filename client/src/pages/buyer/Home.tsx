@@ -4,7 +4,7 @@ import { useApp } from '../../hooks/useApp';
 import { ProductCard } from '../../components/ProductCard';
 import { Search, MapPin, Bell, Leaf, Globe, Recycle, ChevronDown, X, Navigation, Flame, Filter, ArrowUp, ArrowDown, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { VIETNAM_LOCATIONS } from '../../utils/mockData';
+import { VIETNAM_LOCATIONS } from '../../utils/locations';
 import { Button } from '../../components/UI';
 
 export const BuyerHome: React.FC = () => {

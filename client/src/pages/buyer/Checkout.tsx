@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Header, Button } from '../../components/Common';
 import { useApp } from '../../hooks/useApp';
 import { CreditCard, Copy, CheckCircle2, AlertCircle, ArrowRight, Heart } from 'lucide-react';
+import QRCode from 'qrcode.react';
 
 export const CheckoutScreen: React.FC = () => {
   const { state } = useLocation();
@@ -29,7 +30,7 @@ export const CheckoutScreen: React.FC = () => {
     content: `FB${Math.floor(100000 + Math.random() * 900000)}`
   };
 
-  const pickupCode = `PICK-${Math.floor(1000 + Math.random() * 9000)}`;
+    const [pickupCode, setPickupCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -49,8 +50,21 @@ export const CheckoutScreen: React.FC = () => {
   };
 
   const handleConfirm = () => {
-    setIsDone(true);
-    placeOrder(type, address);
+        (async () => {
+            // place order via context API
+            const appliedVoucher = (state && state.appliedVoucher) || null;
+            await placeOrder(type, address, appliedVoucher);
+            // attempt to get latest orders and find most recent pickup code or id
+            try {
+                const resp = await fetch('http://localhost:5000/api/orders', { headers: { 'Content-Type': 'application/json' } });
+                if (resp.ok) {
+                    const os = await resp.json();
+                    const latest = os && os.length ? os[0] : null;
+                    if (latest && latest.type === 'PICKUP') setPickupCode(latest.pickupCode || latest.id);
+                }
+            } catch (e) {}
+            setIsDone(true);
+        })();
   };
 
   if (isDone) {
@@ -145,16 +159,16 @@ export const CheckoutScreen: React.FC = () => {
 
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
                     <h4 className="font-bold text-[#19454B] mb-4">Mã VietQR Thanh Toán</h4>
-                    <div className="relative inline-block bg-white p-4 rounded-2xl border-2 border-[#19454B]/10 shadow-inner">
-                        <div className="w-56 h-56 bg-gray-50 rounded-xl flex items-center justify-center relative overflow-hidden">
-                            <img 
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=bank-transfer-${total}-${bankInfo.content}`} 
-                                className="w-full h-full p-2"
-                                alt="VietQR"
-                            />
-                            <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 shadow-[0_0_10px_#3b82f6] animate-[scan_3s_infinite] opacity-60"></div>
-                        </div>
-                    </div>
+                            <div className="relative inline-block bg-white p-4 rounded-2xl border-2 border-[#19454B]/10 shadow-inner">
+                                <div className="w-56 h-56 bg-gray-50 rounded-xl flex items-center justify-center relative overflow-hidden">
+                                                                        {pickupCode ? (
+                                                                            <QRCode value={String(pickupCode)} size={250} className="w-full h-full p-2" />
+                                                                        ) : (
+                                                                            <div className="text-sm text-gray-500">QR loading...</div>
+                                                                        )}
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 shadow-[0_0_10px_#3b82f6] animate-[scan_3s_infinite] opacity-60"></div>
+                                </div>
+                            </div>
                     <div className="mt-6 flex items-start gap-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100">
                         <CheckCircle2 size={20} className="text-blue-500 shrink-0 mt-0.5" />
                         <p className="text-xs text-blue-800 font-medium">
@@ -172,7 +186,11 @@ export const CheckoutScreen: React.FC = () => {
                     
                     <div className="relative inline-block bg-white p-5 rounded-3xl border-2 border-[#FF7043]/20 shadow-xl mb-6">
                         <div className="w-48 h-48 bg-gray-50 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-200">
-                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${pickupCode}`} className="w-full h-full" alt="QR"/>
+                            {pickupCode ? (
+                                <QRCode value={String(pickupCode)} size={150} />
+                            ) : (
+                                <div className="text-sm text-gray-500">QR loading...</div>
+                            )}
                         </div>
                         <div className="mt-4">
                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest block">Mã xác thực</span>

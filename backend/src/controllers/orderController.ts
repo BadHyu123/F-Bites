@@ -9,7 +9,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     const buyerId = req.user?.id;
     if (!buyerId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const { items, type, deliveryAddress } = req.body; // items: [{ productId, quantity }]
+    const { items, type, deliveryAddress, voucherCode } = req.body; // items: [{ productId, quantity }]
     if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ message: 'No items' });
 
     // For simplicity group by sellerId of products
@@ -25,6 +25,8 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
         sellerId,
         total: 0,
         shippingFee: type === 'DELIVERY' ? 15000 : 0,
+        discountAmount: 0,
+        voucherCode: voucherCode || null,
         status: 'PENDING',
         type,
         deliveryAddress: deliveryAddress || null,
@@ -40,8 +42,31 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       include: { items: true }
     });
 
-    // update order total
-    await prisma.order.update({ where: { id: createdOrder.id }, data: { total: total + (type === 'DELIVERY' ? 15000 : 0) } });
+    // apply voucher if provided
+    let discount = 0;
+    if (voucherCode) {
+      const voucher = await prisma.voucher.findUnique({ where: { code: voucherCode } });
+      if (voucher && voucher.isActive) {
+        const now = new Date();
+        if (voucher.expiresAt && voucher.expiresAt < now) {
+          // expired - ignore voucher
+        } else if (voucher.usageLimit && voucher.timesUsed >= voucher.usageLimit) {
+          // usage exhausted - ignore
+        } else {
+          if (voucher.type === 'PERCENT') {
+            discount = Math.floor((total * voucher.amount) / 100);
+          } else {
+            discount = voucher.amount;
+          }
+
+          // increment timesUsed
+          await prisma.voucher.update({ where: { id: voucher.id }, data: { timesUsed: { increment: 1 } } });
+        }
+      }
+    }
+
+    // update order total and discount
+    await prisma.order.update({ where: { id: createdOrder.id }, data: { total: total + (type === 'DELIVERY' ? 15000 : 0) - discount, discountAmount: discount } });
 
     // Decrement product quantities (best-effort)
     for (const it of items) {

@@ -1,6 +1,6 @@
 
 import express from 'express';
-import { approveShop, getPendingShops, rejectShop, getAdminStats } from '../controllers/adminController';
+import { approveShop, getPendingShops, rejectShop, getAdminStats, getDailyRevenue } from '../controllers/adminController';
 import { protect, adminOnly } from '../middleware/authMiddleware';
 
 const router = express.Router();
@@ -9,6 +9,7 @@ const router = express.Router();
 router.use(protect, adminOnly);
 
 router.get('/stats', getAdminStats);
+router.get('/revenue/daily', getDailyRevenue);
 router.get('/pending-shops', getPendingShops);
 router.put('/approve/:userId', approveShop);
 router.delete('/reject/:userId', rejectShop);

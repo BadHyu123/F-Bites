@@ -10,7 +10,7 @@ type AuthStep = 'FORM' | 'OTP';
 
 export const AuthScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useApp();
+  const { login, register } = useApp();
 
   const [isLogin, setIsLogin] = useState(true);
   const [step, setStep] = useState<AuthStep>('FORM');
@@ -46,28 +46,22 @@ export const AuthScreen: React.FC = () => {
       return;
     }
 
-    const method = detectMethod(identifier);
-
-    if (method === 'PHONE') {
-        if (identifier.length !== 10) {
-            setError('Số điện thoại phải bao gồm đúng 10 chữ số.');
-            return;
-        }
-        if (!identifier.startsWith('0')) {
-             setError('Số điện thoại không hợp lệ (phải bắt đầu bằng số 0).');
-             return;
-        }
+    // require email-based auth for API
+    if (!identifier.includes('@')) {
+      setError('Please use an email address for login/register.');
+      return;
     }
 
     if (isLogin) {
-      if (identifier === 'admin@test.com') {
-          login(identifier, method, 'ADMIN');
-          navigate('/admin');
-          return;
-      }
-
-      login(identifier, method, 'BUYER');
-      navigate('/buyer/home'); 
+      // call API login
+      (async () => {
+        const ok = await login(identifier, password, 'BUYER');
+        if (ok) {
+          navigate('/buyer/home');
+        } else {
+          setError('Login failed. Check credentials.');
+        }
+      })();
     } else {
       if (password !== confirmPassword) {
         setError('Mật khẩu nhập lại không khớp');
@@ -77,7 +71,19 @@ export const AuthScreen: React.FC = () => {
         setError('Mật khẩu phải có ít nhất 6 ký tự');
         return;
       }
-      setStep('OTP');
+
+      // call API register
+      (async () => {
+        const name = identifier.split('@')[0];
+        const result = await register(name, identifier, password, role);
+        if (result.success) {
+          if (role === 'BUYER') navigate('/buyer/home');
+          else if (role === 'SELLER') navigate('/seller/dashboard');
+          else navigate('/admin');
+        } else {
+          setError(result.message || 'Registration failed');
+        }
+      })();
     }
   };
 
@@ -87,12 +93,7 @@ export const AuthScreen: React.FC = () => {
       setError('Mã OTP phải có 6 chữ số');
       return;
     }
-    const method = detectMethod(identifier);
-    login(identifier, method, role);
-    
-    if (role === 'BUYER') navigate('/buyer/home');
-    else if (role === 'SELLER') navigate('/seller/dashboard');
-    else navigate('/admin');
+    setError('OTP flow is handled by server or external provider. Please register using email.');
   };
 
   const switchMode = (mode: boolean) => {
@@ -270,31 +271,7 @@ export const AuthScreen: React.FC = () => {
           )}
         </div>
 
-        {isLogin && step === 'FORM' && (
-           <div className="mt-6 text-center">
-               <p className="text-xs text-teal-200/70 mb-2">Tài khoản dùng thử:</p>
-               <div className="flex gap-2 justify-center text-xs flex-wrap">
-                  <button 
-                    onClick={() => { setIdentifier('buyer@test.com'); setPassword('123456'); }} 
-                    className="bg-white/10 px-3 py-1 rounded-full text-white hover:bg-white/20 transition-colors"
-                  >
-                    Buyer
-                  </button>
-                  <button 
-                    onClick={() => { setIdentifier('seller@test.com'); setPassword('123456'); }} 
-                    className="bg-white/10 px-3 py-1 rounded-full text-white hover:bg-white/20 transition-colors"
-                  >
-                    Seller
-                  </button>
-                   <button 
-                    onClick={() => { setIdentifier('admin@test.com'); setPassword('123456'); }} 
-                    className="bg-white/10 px-3 py-1 rounded-full text-white hover:bg-white/20 transition-colors border border-white/20"
-                  >
-                    Admin
-                  </button>
-               </div>
-           </div>
-        )}
+        {/* Trial account buttons removed - use seeded DB accounts instead */}
       </div>
     </div>
   );

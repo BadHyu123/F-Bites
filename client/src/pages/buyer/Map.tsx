@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css"; // <--- Đừng quên dòng này!
 import { Search, Navigation, X, Clock, Leaf, Star } from "lucide-react";
+import { useApp } from '../../hooks/useApp';
 
 // --- 1. CẤU HÌNH ICON MARKER ---
 const createRescueIcon = (emoji: string) =>
@@ -67,6 +68,27 @@ const MapEvents = ({ onMapClick }: { onMapClick: () => void }) => {
 // --- COMPONENT CHÍNH ---
 export const MapScreen: React.FC = () => {
   const [selectedShop, setSelectedShop] = useState<any>(null);
+  const { products } = useApp();
+
+  // derive unique shops from products
+  const shops = React.useMemo(() => {
+    const map: Record<string, any> = {};
+    (products || []).forEach((p: any) => {
+      if (p.sellerId && !map[p.sellerId]) {
+        map[p.sellerId] = {
+          id: p.sellerId,
+          lat: p.lat || p.location?.lat,
+          lng: p.lng || p.location?.lng,
+          emoji: '🍽️',
+          name: p.sellerName || p.seller?.name || 'Shop',
+          address: p.address || p.seller?.shopAddress || '',
+          rating: p.rating || 4.5,
+          image: p.image
+        };
+      }
+    });
+    return Object.values(map);
+  }, [products]);
 
   return (
     <div className="w-full h-full relative bg-gray-100 flex flex-col">
@@ -105,10 +127,10 @@ export const MapScreen: React.FC = () => {
         />
         <MapEvents onMapClick={() => setSelectedShop(null)} />
 
-        {LOCATIONS.map((loc) => (
+        {shops.map((loc: any) => (
           <Marker
             key={loc.id}
-            position={[loc.lat, loc.lng]}
+            position={[loc.lat || 10.7769, loc.lng || 106.7009]}
             icon={createRescueIcon(loc.emoji)}
             eventHandlers={{ click: () => setSelectedShop(loc) }}
           />

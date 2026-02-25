@@ -5,7 +5,7 @@ import { Button, Header, Input } from '../../components/Common';
 import { Trash2, Store, Truck, Leaf, ArrowRight, Minus, Plus, MapPin, QrCode, ShieldCheck, X, Ticket, Wallet, CreditCard, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CartItem } from '../../types';
-import { VIETNAM_LOCATIONS } from '../../utils/mockData';
+import { VIETNAM_LOCATIONS } from '../../utils/locations';
 
 export const CartScreen: React.FC = () => {
   const { cart, removeFromCart, addToCart, userLocation, vouchers } = useApp();

@@ -7,6 +7,7 @@ import productRoutes from './routes/productRoutes';
 import orderRoutes from './routes/orderRoutes';
 import userRoutes from './routes/userRoutes';
 import adminRoutes from './routes/adminRoutes';
+import reviewRoutes from './routes/reviewRoutes';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use('/api/users', userRoutes);   // New: Profile updates
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);  // New: Admin operations
+app.use('/api/reviews', reviewRoutes);
 
 app.get('/', (req, res) => {
   res.send('F-bites API is running');

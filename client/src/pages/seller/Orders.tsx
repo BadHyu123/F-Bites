@@ -1,13 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../hooks/useApp';
 import { Header, Button } from '../../components/Common';
 import { QrCode, Check, X, MapPin, Package, MessageSquare, Truck, Store } from 'lucide-react';
+import jsQR from 'jsqr';
 
 export const SellerOrders: React.FC = () => {
   const { user, orders, updateOrderStatus } = useApp();
+    const [inputCode, setInputCode] = useState('');
   const [activeTab, setActiveTab] = useState<'PENDING' | 'PROCESSING' | 'HISTORY'>('PENDING');
   const [scanMode, setScanMode] = useState(false);
+    const [scannedText, setScannedText] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
 
   const myOrders = orders.filter(o => o.sellerId === user?.id);
   
@@ -22,6 +28,60 @@ export const SellerOrders: React.FC = () => {
   const historyOrders = myOrders
     .filter(o => o.status === 'COMPLETED' || o.status === 'CANCELLED')
     .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  useEffect(() => {
+    if (!scanMode || !videoRef.current) return;
+    
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          
+          const scanFrame = () => {
+            if (!videoRef.current || !canvasRef.current) return;
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            ctx.drawImage(videoRef.current, 0, 0);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            
+            if (code) {
+              const text = code.data;
+              setScannedText(text);
+              const found = processingOrders.find(o => (o.pickupCode || o.id) === text);
+              if (found) {
+                updateOrderStatus(found.id, 'COMPLETED');
+                setScanMode(false);
+                alert('Đã xác thực đơn hàng thành công!');
+              } else {
+                alert('Mã QR không khớp với đơn hàng chờ lấy.');
+              }
+              return;
+            }
+            
+            if (scanMode) requestAnimationFrame(scanFrame);
+          };
+          
+          requestAnimationFrame(scanFrame);
+        }
+      } catch (e) {
+        alert('Không thể truy cập camera');
+      }
+    };
+    
+    startCamera();
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+      }
+    };
+  }, [scanMode, processingOrders]);
 
   const currentList = activeTab === 'PENDING' ? pendingOrders : activeTab === 'PROCESSING' ? processingOrders : historyOrders;
 
@@ -62,6 +122,21 @@ export const SellerOrders: React.FC = () => {
       </div>
 
       <div className="p-4 space-y-4">
+                <div className="mb-4">
+                    <div className="flex gap-2">
+                        <input value={inputCode} onChange={e => setInputCode(e.target.value)} placeholder="Enter pickup code" className="flex-1 px-3 py-2 rounded-lg border" />
+                        <button onClick={() => {
+                                // try to find order by pickup code in local orders and complete it
+                                const found = orders.find(o => (o.pickupCode || o.id) === inputCode && o.sellerId === user?.id);
+                                if (found) {
+                                    updateOrderStatus(found.id, 'COMPLETED');
+                                    alert('Order marked as completed');
+                                } else {
+                                    alert('Order code not found');
+                                }
+                            }} className="px-4 py-2 rounded-lg bg-[#19454B] text-white">Verify</button>
+                    </div>
+                </div>
         {currentList.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                 <Package size={48} className="mb-4 opacity-30" />
@@ -178,27 +253,19 @@ export const SellerOrders: React.FC = () => {
       {scanMode && (
         <div className="fixed inset-0 bg-black/90 z-[60] flex flex-col items-center justify-center p-6 text-white animate-in fade-in">
             <h2 className="text-2xl font-bold mb-8">Quét mã nhận hàng</h2>
-            <div className="w-64 h-64 border-4 border-[#FF7043] rounded-3xl mb-8 relative">
-                <div className="absolute top-0 left-0 w-full h-1 bg-[#FF7043] shadow-[0_0_10px_#FF7043] animate-[scan_2s_infinite]"></div>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-80 h-80 bg-white rounded-2xl mb-6 object-cover"
+              style={{ transform: 'scaleX(-1)' }}
+            />
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+            <p className="text-gray-300 text-center mb-4">Di chuyển camera đến mã QR trên điện thoại của khách hàng.</p>
+            <div className="flex gap-2 w-full max-w-xs">
+                <Button fullWidth variant="outline" onClick={() => setScanMode(false)} className="border-white text-white hover:bg-white/10">Đóng Camera</Button>
+                <button onClick={() => { if (scannedText) navigator.clipboard.writeText(scannedText); }} className="px-4 py-2 rounded-lg bg-white text-black">Sao chép</button>
             </div>
-            <p className="text-gray-300 text-center mb-8">Di chuyển camera đến mã QR trên điện thoại của khách hàng.</p>
-            <Button fullWidth variant="outline" onClick={() => setScanMode(false)} className="max-w-xs border-white text-white hover:bg-white/10">Đóng Camera</Button>
-            
-            <button 
-                onClick={() => {
-                    const pickupOrder = processingOrders.find(o => o.type === 'PICKUP');
-                    if (pickupOrder) {
-                        updateOrderStatus(pickupOrder.id, 'COMPLETED');
-                        setScanMode(false);
-                        alert("Đã xác thực đơn hàng thành công!");
-                    } else {
-                        alert("Không tìm thấy đơn chờ lấy nào để xác thực demo.");
-                    }
-                }}
-                className="mt-4 text-xs text-gray-500 underline"
-            >
-                [Demo] Tự động xác thực đơn đầu tiên
-            </button>
         </div>
       )}
       <style>{`@keyframes scan { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }`}</style>
