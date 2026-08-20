@@ -3,27 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
-}
-
-enum Role {
-  BUYER
-  SELLER
-  ADMIN
-}
-
-enum OrderStatus {
-  PENDING
-  PREPARING
-  READY
-  COMPLETED
-  CANCELLED
-}
-
-enum OrderType {
-  DELIVERY
-  PICKUP
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -33,7 +14,7 @@ model User {
   password    String
   phone       String?
   avatar      String?
-  role        Role     @default(BUYER)
+  role        String   @default("BUYER")
   isApproved  Boolean  @default(true)
   shopName    String?
   shopAddress String?
@@ -85,8 +66,8 @@ model Order {
   shippingFee     Int         @default(0)
   discountAmount  Int         @default(0)
   voucherCode     String?
-  status          OrderStatus @default(PENDING)
-  type            OrderType
+  status          String      @default("PENDING")
+  type            String
   deliveryAddress String?
   note            String?
   pickupCode      String?
@@ -99,15 +80,10 @@ model Order {
   @@index([sellerId, createdAt])
 }
 
-enum VoucherType {
-  PERCENT
-  FIXED
-}
-
 model Voucher {
   id          String   @id @default(cuid())
   code        String   @unique
-  type        VoucherType
+  type        String
   amount      Int
   expiresAt   DateTime?
   usageLimit  Int?

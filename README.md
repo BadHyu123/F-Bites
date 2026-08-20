@@ -1,6 +1,19 @@
-# F-Bites — Full-Stack Food Delivery App
+# F-Bites — Full-Stack Food Rescue Marketplace
 
-This repository contains the F-Bites full-stack application: a food rescue marketplace with three roles (Buyer, Seller, Admin). The frontend is built with React + Vite and the backend uses Node.js, Express, TypeScript and Prisma (MySQL).
+## Project Overview
+F-Bites is a food rescue marketplace designed to reduce food waste by connecting sellers (restaurants, cafes, etc.) with buyers who want to purchase surplus food at discounted prices. The platform supports three roles:
+- **Buyer:** Browse, order, and track food rescue items.
+- **Seller:** List surplus items and manage orders.
+- **Admin:** Approve shops and monitor marketplace statistics.
+
+## Tech Stack
+- **Frontend:** React, Vite, Tailwind CSS, Lucide React, Leaflet, Recharts.
+- **Backend:** Node.js, Express, TypeScript, Prisma, Zod, JWT.
+- **Database:** SQLite (for local demo) / MySQL (production).
+
+## Demo
+![F-Bites Demo](docs/demo.png)
+*(Note: Replace `docs/demo.png` with your actual screenshot of the application)*
 
 ## Quickstart (English)
 
@@ -144,7 +157,5 @@ References
 - React: https://react.dev
 - Express: https://expressjs.com
 - Prisma: https://www.prisma.io/docs
-
-Last Updated: Feb 8, 2026
 
 
