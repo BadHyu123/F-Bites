@@ -12,7 +12,12 @@ F-Bites is a food rescue marketplace designed to reduce food waste by connecting
 - **Database:** SQLite (for local demo) / MySQL (production).
 
 ## Demo
-![F-Bites Demo](docs/homepage_buyer.png)
+Chúng tôi cung cấp trải nghiệm toàn diện cho cả Người mua, Người bán và Quản trị viên.
+
+| Giao diện Buyer | Giao diện Seller | Bản đồ & Hồ sơ |
+| :---: | :---: | :---: |
+| ![Homepage](docs/homepage_buyer.png) | ![Seller](docs/homepage_seller.png) | ![Maps](docs/maps_buyer.png) |
+| *Trang chủ Buyer* | *Trang chủ Seller* | *Bản đồ & Hồ sơ* |
 
 ## Quickstart (English)
 
